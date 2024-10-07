@@ -10,22 +10,26 @@ def process_har_file(har_file_path, output_excel_path):
         har_parser = HarParser(json.loads(f.read()))
 
     # .mp4 및 .MOV 요청 필터링 및 로드 속도, 파일 사이즈 추출
-    mp4_requests = []
+    image_requests = []
     for page in har_parser.pages:
         for entry in page.entries:
             # 요청 URL에 '.mp4' 또는 '.MOV'가 포함된 경우 필터링
             if '.jpg' in entry['request']['url'] or '.png' in entry['request']['url']:
-                mp4_requests.append({
+                image_requests.append({
                     "URL": entry['request']['url'],
                     "Load Time (ms)": entry['timings']['receive'],  # 로드 속도 (ms 단위)
-                    "File Size (bytes)": entry['response']['content']['size']  # 파일 사이즈 (bytes)
+                    "File Size (bytes)": entry['response']['content']['size'],  # 파일 사이즈 (bytes)
+                    "Status Code": entry['response']['status'],  # 상태 코드
+                    "Content-Type": entry['response']['content']['mimeType'],  # Content-Type
+                    "Content-Length": entry['response']['headersSize'],  # Content-Length (헤더 크기)
+                    "Content-Range": next((header['value'] for header in entry['response']['headers'] if header['name'].lower() == 'content-range'), None)  # Content-Range (헤더에서 검색)
                 })
 
     # 데이터프레임 생성
-    df = pd.DataFrame(mp4_requests)
+    df = pd.DataFrame(image_requests)
 
     # 결과 출력
-    print(f"Total MP4/MOV requests found in {har_file_path}: {len(mp4_requests)}")
+    print(f"Total MP4/MOV requests found in {har_file_path}: {len(image_requests)}")
     print(df)
 
     # MP4 요청을 엑셀 파일로 저장
